@@ -1,6 +1,7 @@
 import os
 import logging
 import subprocess
+import json
 
 # from datetime import datetime
 
@@ -19,7 +20,7 @@ def setup_logging():
     """
     Set up logging to a file.
     """
-    log_file = 'logging/convertlog.log'
+    log_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logging', 'convertlog.log')
     logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     logging.info('Execution start')
 
@@ -58,8 +59,47 @@ def check_for_files():
             logging.error(error_message)
             print(error_message)
             return
+        
+def inspect_files():
+    """
+    Inventory and log detailed information about files to be converted using ffprobe.
+    """
+    convert_folder = 'convert'
 
-# Main execution
+    files_in_convert = [file for file in os.listdir(convert_folder) if os.path.isfile(os.path.join(convert_folder, file))]
+
+    if not files_in_convert:
+        logging.info('No files found in the convert folder.')
+        return
+
+    logging.info('Files to be converted:')
+    
+    for file in files_in_convert:
+        file_path = os.path.join(convert_folder, file)
+
+        # Use ffprobe to capture detailed information about the file
+        ffprobe_command = f'ffprobe -hide_banner -v error -show_entries format=duration,bit_rate -show_entries stream=codec_type,width,height,display_aspect_ratio,codec_name -of json "{file_path}"'
+        try:
+            result = subprocess.check_output(ffprobe_command, shell=True, text=True)
+            data = json.loads(result)
+
+            logging.info(f'File: {file}')
+            logging.info(f'Duration: {data["format"]["duration"]}')
+            logging.info(f'Bitrate: {data["format"]["bit_rate"]} bps')
+
+            for stream in data["streams"]:
+                if stream["codec_type"] == "video":
+                    # logging.info('Video:')
+                    if 'codec_name' in stream:
+                        logging.info(f'Codec: {stream["codec_name"]}')
+                    logging.info(f'Resolution: {stream["width"]}x{stream["height"]} [{stream["display_aspect_ratio"]}]')
+                elif stream["codec_type"] == "audio":
+                    logging.info('Audio: Present')
+
+        except subprocess.CalledProcessError as e:
+            # ffprobe command failed
+            logging.error(f'Error running ffprobe for file "{file}": {e.output.strip()}')
+
 if __name__ == "__main__":
     setup_directories()
 
@@ -67,6 +107,6 @@ if __name__ == "__main__":
 
     check_for_files()
 
-
+    inspect_files()
 
     logging.info('Execution end\n')
