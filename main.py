@@ -3,7 +3,7 @@ import logging
 import subprocess
 import json
 import platform
-from concurrent.futures import ProcessPoolExecutor, as_completed
+
 
 def setup_directories():
     """
@@ -16,9 +16,11 @@ def setup_directories():
             os.makedirs(directory)
             print(f"Created directory: {directory}")
 
+
 PLATFORM = platform.system()
 FFMPEG = "ffmpeg.exe" if PLATFORM == "Windows" else "ffmpeg"
 FFPROBE = "ffprobe.exe" if PLATFORM == "Windows" else "ffprobe"
+
 
 def setup_logging():
     """
@@ -33,6 +35,7 @@ def setup_logging():
         format="%(asctime)s - %(levelname)s - %(message)s",
     )
     logging.info("Execution start")
+
 
 def validate_files():
     """
@@ -79,6 +82,7 @@ def validate_files():
             logging.error(f"ffprobe output: {e.output.strip()}")
 
     return valid_video_files
+
 
 def inspect_files(valid_video_files):
     """
@@ -142,6 +146,7 @@ def inspect_files(valid_video_files):
                 f'Error in `inspect_file` function running ffprobe for file "{file}": {str(e)}'
             )
 
+
 def convert_single_video(file):
     """
     Convert a single video file to .mp4 format.
@@ -149,27 +154,44 @@ def convert_single_video(file):
     logging.info(f"Start file conversion for file {file}")
     try:
         file_path = os.path.join("convert", file)
-        output_file = os.path.join("converted", f"{os.path.splitext(file)[0]}_converted.mp4")
-        ffmpeg_command = f'{FFMPEG} -hide_banner -i "{file_path}" -q:v 0 "{output_file}"'
-        subprocess.run(ffmpeg_command, shell=True, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-        logging.info(f"Conversion complete for file: {file}")
+        output_file = os.path.join(
+            "converted", f"{os.path.splitext(file)[0]}_converted.mp4"
+        )
+
+        # Construct ffmpeg command
+        ffmpeg_command = [
+            FFMPEG,
+            "-hide_banner",
+            "-i",
+            file_path,
+            "-c:v",
+            "libx264",
+            "-preset",
+            "medium",
+            "-crf",
+            "23",
+            "-vf",
+            "scale=-2:720",
+            "-c:a",
+            "aac",
+            "-q:a",
+            "100",
+            output_file,
+        ]
+
+        # Execute ffmpeg command and capture output
+        result = subprocess.run(ffmpeg_command, capture_output=True, text=True)
+
+        # Log only essential information
+        if result.returncode == 0:
+            logging.info(f"Conversion complete for file: {file}")
+        else:
+            error_message = f'Error converting file "{file}": {result.stderr.strip()}'
+            logging.error(error_message)
+
     except subprocess.CalledProcessError as e:
         logging.error(f'Error converting file "{file}": {e}')
 
-
-def convert_video(valid_video_files):
-    """
-    Convert video files to .mp4 format using multiprocessing.
-    """
-    with ProcessPoolExecutor(max_workers=2) as executor:
-        futures = {executor.submit(convert_single_video, file): file for file in valid_video_files}
-
-        for future in as_completed(futures):
-            file = futures[future]
-            try:
-                future.result()
-            except Exception as e:
-                logging.error(f'Error processing file "{file}": {e}')
 
 if __name__ == "__main__":
     setup_directories()
@@ -181,6 +203,7 @@ if __name__ == "__main__":
     if valid_video_files:
         inspect_files(valid_video_files)
 
-        convert_video(valid_video_files)
+        for file in valid_video_files:
+            convert_single_video(file)
 
     logging.info("Execution end\n")
