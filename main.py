@@ -4,23 +4,20 @@ import subprocess
 import json
 import platform
 
+PLATFORM = platform.system()
+FFMPEG = "ffmpeg.exe" if PLATFORM == "Windows" else "ffmpeg"
+FFPROBE = "ffprobe.exe" if PLATFORM == "Windows" else "ffprobe"
 
 def setup_directories():
     """
     Check and create directories if not present.
     """
-    directories = ["convert", "converted", "logging"]
+    directories = ["convert_media", "converted_media", "logging"]
 
     for directory in directories:
         if not os.path.exists(directory):
             os.makedirs(directory)
             print(f"Created directory: {directory}")
-
-
-PLATFORM = platform.system()
-FFMPEG = "ffmpeg.exe" if PLATFORM == "Windows" else "ffmpeg"
-FFPROBE = "ffprobe.exe" if PLATFORM == "Windows" else "ffprobe"
-
 
 def setup_logging():
     """
@@ -36,14 +33,41 @@ def setup_logging():
     )
     logging.info("Execution start")
 
+def prepare_files():
+    """
+    Check and rename files in the 'convert_media' folder, replacing spaces with underscores.
+    """
+    logging.info("Checking filenames for non-standard characters")
+
+    convert_folder = "convert_media"
+
+    files_in_convert = [
+        file
+        for file in os.listdir(convert_folder)
+        if os.path.isfile(os.path.join(convert_folder, file))
+    ]
+
+    for file in files_in_convert:
+        # Replace spaces with underscores in the file name
+        new_file_name = file.replace(" ", "_")
+        file_path = os.path.join(convert_folder, file)
+        new_file_path = os.path.join(convert_folder, new_file_name)
+
+        # Rename the file if it contains spaces
+        if file != new_file_name:
+            os.rename(file_path, new_file_path)
+            logging.info(f'Renamed file: "{file}" to "{new_file_name}"')
+    
+    logging.info("Filenames checked")
 
 def validate_files():
     """
-    Check for the presence of video files in the 'convert' folder.
+    Check for the presence of video files in the 'convert_media' folder.
     Log an error if no files are present or if a file does not contain video.
     Return a list of valid video files.
     """
-    convert_folder = "convert"
+    logging.info("Validating video files. Files without video content will not be processed.")
+    convert_folder = "convert_media"
     valid_video_files = []
 
     files_in_convert = [
@@ -53,7 +77,7 @@ def validate_files():
     ]
 
     if not files_in_convert:
-        error_message = "No files found in the convert folder."
+        error_message = "No files found in the convert_media folder."
         logging.error(error_message)
         print(error_message)
         return valid_video_files
@@ -80,21 +104,22 @@ def validate_files():
             error_message = f'Error in function `validate_files` running ffprobe for file "{file}": {str(e)}.'
             logging.error(error_message)
             logging.error(f"ffprobe output: {e.output.strip()}")
+    
+    logging.info("Video files validated.")
 
     return valid_video_files
-
 
 def inspect_files(valid_video_files):
     """
     Using ffprobe, inventory and log detailed information about valid video files to be converted.
     """
-    convert_folder = "convert"
+    convert_folder = "convert_media"
 
     if not valid_video_files:
-        logging.info("No valid video files found in the convert folder.")
+        logging.info("No valid video files found in the convert_media folder.")
         return
 
-    logging.info("Inspecting files:")
+    logging.info("Inspecting validated files:")
 
     for file in valid_video_files:
         file_path = os.path.join(convert_folder, file)
@@ -146,6 +171,7 @@ def inspect_files(valid_video_files):
                 f'Error in `inspect_file` function running ffprobe for file "{file}": {str(e)}'
             )
 
+    logging.info("File inspection completed.")
 
 def convert_single_video(file):
     """
@@ -153,10 +179,8 @@ def convert_single_video(file):
     """
     logging.info(f"Start file conversion for file {file}")
     try:
-        file_path = os.path.join("convert", file)
-        output_file = os.path.join(
-            "converted", f"{os.path.splitext(file)[0]}_converted.mp4"
-        )
+        file_path = os.path.join("convert_media", file)
+        output_file = get_output_file_path(file)
 
         # Construct ffmpeg command
         ffmpeg_command = [
@@ -192,11 +216,28 @@ def convert_single_video(file):
     except subprocess.CalledProcessError as e:
         logging.error(f'Error converting file "{file}": {e}')
 
+def get_output_file_path(file):
+    """
+    Get the output file path for the converted_media video, handling duplicate filenames.
+    """
+    convert_folder = "converted_media"
+    file_prefix, file_extension = os.path.splitext(file)
+    output_file_path = os.path.join(convert_folder, f"{file_prefix}_converted.mp4")
+
+    counter = 1
+    while os.path.exists(output_file_path):
+        # If file with the same name exists, add a counter to the filename
+        output_file_path = os.path.join(convert_folder, f"{file_prefix}_converted_{counter}.mp4")
+        counter += 1
+
+    return output_file_path
 
 if __name__ == "__main__":
     setup_directories()
 
     setup_logging()
+
+    prepare_files()
 
     valid_video_files = validate_files()
 

@@ -1,8 +1,8 @@
 # Custom ignores
 samples/
 scratchpad.py
-convert/
-converted/
+convert_media/
+converted_media/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
