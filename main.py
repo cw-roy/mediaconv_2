@@ -7,19 +7,40 @@ import subprocess
 import json
 import platform
 
+"""
 
+Converts video files to .mp4. 
+
+Sets resolution of the converted file to 720p to ensure compatibility
+across different players while in many cases reducing file size.
+
+"""
+# Define constants for folder names
+CONVERT_MEDIA_FOLDER = "convert_media"
+CONVERTED_MEDIA_FOLDER = "converted_media"
+LOGGING_FOLDER = "logging"
+
+# Set executable for Windows or *nix systems
 PLATFORM = platform.system()
 FFMPEG = "ffmpeg.exe" if PLATFORM == "Windows" else "ffmpeg"
 FFPROBE = "ffprobe.exe" if PLATFORM == "Windows" else "ffprobe"
 
+
 def check_ffmpeg():
+    """
+    Confirm FFMpeg is installed
+    """
     try:
-        result = subprocess.run(['ffmpeg', '-version'], capture_output=True, text=True, check=True)
-        logging.info(f'FFmpeg version: {result.stdout.strip()}')
+        result = subprocess.run(
+            ["ffmpeg", "-version"], capture_output=True, text=True, check=True
+        )
+        logging.info(f"FFmpeg version: {result.stdout.strip()}")
         return True
     except subprocess.CalledProcessError as e:
-        print('Error: FFmpeg is not installed or not in the system PATH.')
-        print(f'Command output (stderr): {e.stderr.strip()}')
+        logging.error("Error: FFmpeg is not installed or not in the system PATH.")
+        logging.error(f"Command output (stderr): {e.stderr.strip()}")
+        print("Error: FFmpeg is not installed or not in the system PATH.")
+        print(f"Command output (stderr): {e.stderr.strip()}")
         sys.exit(1)  # Exit with an error code
 
 
@@ -27,34 +48,30 @@ def setup_directories():
     """
     Check and create directories if not present.
     """
-    directories = ["convert_media", "converted_media", "logging"]
+    directories = [CONVERT_MEDIA_FOLDER, CONVERTED_MEDIA_FOLDER, LOGGING_FOLDER]
 
     for directory in directories:
         if not os.path.exists(directory):
             os.makedirs(directory)
-            print(f"Created directory: {directory}")
+            logging.info(f"Created directory: {directory}")
 
 
 def setup_logging(log_directory="logging"):
     """
     Set up logging to a file with a rotating file handler.
-
-    :param log_directory: The directory where log files will be saved.
-    :return: The path to the log file.
     """
     log_file_path = os.path.join(log_directory, "convertlog.log")
 
-    # Create a rotating file handler that rotates the log file every 5 MB and keeps 1 backup
+    # Rotates the log file every 5 MB and keeps 1 backup
     rotating_handler = RotatingFileHandler(
         log_file_path, maxBytes=5 * 1024 * 1024, backupCount=1
     )
 
-    # Set up the logging format and level
+    # Set up the logging format
     formatter = logging.Formatter(
         "%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
     )
     rotating_handler.setFormatter(formatter)
-    rotating_handler.setLevel(logging.INFO)
 
     # Get the root logger and remove any existing handlers
     root_logger = logging.getLogger()
@@ -63,21 +80,22 @@ def setup_logging(log_directory="logging"):
     # Add the rotating file handler to the root logger
     root_logger.addHandler(rotating_handler)
 
+    # No need to set the level for the rotating handler; it inherits from the root logger
+
     # Set the global logging level
     root_logger.setLevel(logging.INFO)
 
     root_logger.info("Execution start")
     return log_file_path
 
-
 def prepare_files():
     """
-    Check and rename files in the 'convert_media' folder, replacing spaces with underscores
-    and handling other non-alphanumeric characters.
+    Check and rename files in the 'convert_media' folder, replacing spaces
+    with underscores and handling other non-alphanumeric characters.
     """
-    logging.info("Checking filenames for non-standard characters")
+    logging.info("Checking filenames for non-standard characters:")
 
-    convert_folder = "convert_media"
+    convert_folder = CONVERT_MEDIA_FOLDER
 
     files_in_convert = [
         file
@@ -86,21 +104,33 @@ def prepare_files():
     ]
 
     for file in files_in_convert:
-        # Remove non-alphanumeric characters
-        new_file_name = re.sub(r"[^a-zA-Z0-9_. ]", "", file)
+        # Check if the file name contains spaces or other non-alphanumeric characters
+        if any(
+            char in r'~\/*?<>|:" ' for char in file
+        ):  # Include space character in the condition
+            # Remove non-alphanumeric characters
+            new_file_name = re.sub(r"[^a-zA-Z0-9_. ]", "", file)
 
-        # Replace spaces with underscores in the file name
-        new_file_name = new_file_name.replace(" ", "_")
+            # Replace spaces with underscores in the file name
+            new_file_name = new_file_name.replace(" ", "_")
 
-        file_path = os.path.join(convert_folder, file)
-        new_file_path = os.path.join(convert_folder, new_file_name)
+            file_path = os.path.join(convert_folder, file)
+            new_file_path = os.path.join(convert_folder, new_file_name)
 
-        # Rename the file if it contains spaces or other non-alphanumeric characters
-        if file != new_file_name:
-            os.rename(file_path, new_file_path)
-            logging.info(f'Renamed file: "{file}" to "{new_file_name}"')
+            # If the new file name already exists, add a counter to the filename
+            counter = 1
+            while os.path.exists(new_file_path):
+                file_prefix, file_extension = os.path.splitext(new_file_name)
+                new_file_name = f"{file_prefix}_{counter}{file_extension}"
+                new_file_path = os.path.join(convert_folder, new_file_name)
+                counter += 1
 
-    logging.info("Filenames checked")
+            # Rename the file if it contains spaces or other non-alphanumeric characters
+            if file != new_file_name:
+                os.rename(file_path, new_file_path)
+                logging.info(f'Renamed file: "{file}" to "{new_file_name}"')
+
+    logging.info("Filenames checked.")
 
 
 def validate_files():
@@ -124,7 +154,6 @@ def validate_files():
     if not files_in_convert:
         error_message = "No files found in the convert_media folder."
         logging.error(error_message)
-        print(error_message)
         return valid_video_files
 
     for file in files_in_convert:
@@ -143,12 +172,13 @@ def validate_files():
                 error_message = f'File "{file}" does not contain video.'
                 logging.error(error_message)
                 logging.error(f"ffprobe output: {result}")
-                # print(error_message)
         except subprocess.CalledProcessError as e:
             # ffprobe command failed
-            error_message = f'Error in function `validate_files` running ffprobe for file "{file}".'
+            error_message = (
+                f'Error in function `validate_files` running ffprobe for file "{file}".'
+            )
             logging.error(error_message)
-            logging.info(f"Error from ffprobe: {e.output.strip()}")
+            logging.info(f"Returned from ffprobe: {e.output.strip()}")
 
     logging.info("Video files validated.")
 
@@ -157,7 +187,7 @@ def validate_files():
 
 def inspect_files(valid_video_files):
     """
-    Using ffprobe, inventory and log detailed information about valid video files to be converted.
+    Uses ffprobe to log detailed information about valid video files pre-conversion.
     """
     convert_folder = "convert_media"
 
@@ -222,11 +252,15 @@ def inspect_files(valid_video_files):
 
 def convert_video(file):
     """
-    Convert a video file to .mp4 format.
+    Converts a video file to .mp4 format. Specifies the h264 compression standard,
+    balances conversion speed with compression ratio, scales the converted video
+    to 720p while handling non-standard aspect ratios, copies audio using the aac
+    format at full quality, and enables quick video playback by optimizing file
+    for streaming initiation.
     """
-    logging.info(f"Start file conversion for file {file}")
+    logging.info(f"Start file conversion for file {file}.")
     try:
-        file_path = os.path.join("convert_media", file)
+        file_path = os.path.join(CONVERT_MEDIA_FOLDER, file)
         output_file = get_output_file_path(file)
 
         # Construct ffmpeg command
@@ -257,13 +291,13 @@ def convert_video(file):
 
         # Log only essential information
         if result.returncode == 0:
-            logging.info(f"Conversion complete for file: {file}")
+            logging.info(f"Conversion complete for file: {file}.")
         else:
-            error_message = f'Error converting file "{file}": {result.stderr.strip()}'
+            error_message = f'Error converting file "{file}": {result.stderr.strip()}.'
             logging.error(error_message)
 
     except subprocess.CalledProcessError as e:
-        logging.error(f'Error converting file "{file}": {e}')
+        logging.error(f'Error converting file "{file}": {e}.')
 
 
 def get_output_file_path(file):
@@ -288,9 +322,10 @@ def get_output_file_path(file):
 def inspect_converted_files():
     """
     Inspect converted video files in the 'converted_media' folder.
-    Log detailed information about the converted videos.
+    Log detailed information about the converted videos. Useful for
+    comparison to pre-conversion state.
     """
-    convert_folder = "converted_media"
+    convert_folder = CONVERTED_MEDIA_FOLDER
 
     converted_files = [
         file
@@ -358,11 +393,11 @@ def inspect_converted_files():
 
 
 if __name__ == "__main__":
-    ffmpeg_installed = check_ffmpeg()
+    check_ffmpeg()
 
     setup_directories()
 
-    log_file_path = setup_logging()
+    log_file_path = setup_logging(log_directory=LOGGING_FOLDER)
 
     prepare_files()
 
@@ -376,4 +411,4 @@ if __name__ == "__main__":
 
         inspect_converted_files()
 
-    logging.info("Execution end\n")
+    logging.info("Execution complete.\n")
