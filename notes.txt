@@ -1,0 +1,51 @@
+# mediaconv_v2 notepad
+
+### Target
+
+Batch convert video files to the .mp4 format. Focus on compatibility and file size reduction
+
+### Tools
+
+- FFmpeg
+- Python 3.10
+
+## Dev notes
+
+### Setup
+
+- [x] Create repo
+- [x] Folder structure: input, output, and logging.
+- [x] Platform Agnostic: Windows / *nix.
+
+- No external libraries needed! All built-ins
+
+### Script Skeleton
+
+- [x] Script Creation: start from  `scratchpad.py`. Prod will be main.py
+- [x] Use Constants: Set up constants for folders and tools.
+- [x] Logger Setup: Configured logging with a rotating file handler.
+
+### Video Handling
+
+#### File Prep
+
+- [x] Filename Cleanup: Implement logic to handle spaces and non-alphanumeric characters.
+- [x] File Validation: Check the validity of files in `convert_media`.
+
+#### Pre-conversion Inspection
+
+- [x] FFprobe: Capture pre-conversion file info
+- [x] Inspection Logging: log pre-conversion details.
+
+#### Conversion
+
+- [x] Video Conversion: Fine tune FFMpeg command for efficiency & effectiveness
+- [x] Output Naming: Ensure unique output file names.
+
+#### Post-conversion Inspection
+
+- [x] Post-conversion FFprobe: capture post-conversion file info (compare to pre-inspection)
+
+### Future Plans
+
+- [ ] Parallel Conversion: Explore options for parallel video conversion.

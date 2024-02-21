@@ -142,7 +142,7 @@ def validate_files():
     logging.info(
         "Validating video files. Files without video content will not be processed."
     )
-    convert_folder = "convert_media"
+    convert_folder = CONVERT_MEDIA_FOLDER
     valid_video_files = []
 
     files_in_convert = [
@@ -189,7 +189,7 @@ def inspect_files(valid_video_files):
     """
     Uses ffprobe to log detailed information about valid video files pre-conversion.
     """
-    convert_folder = "convert_media"
+    convert_folder = CONVERT_MEDIA_FOLDER
 
     if not valid_video_files:
         logging.info("No valid video files found in the convert_media folder.")
@@ -304,7 +304,7 @@ def get_output_file_path(file):
     """
     Get the output file path for the converted_media video, handling duplicate filenames.
     """
-    convert_folder = "converted_media"
+    convert_folder = CONVERTED_MEDIA_FOLDER
     file_prefix, file_extension = os.path.splitext(file)
     output_file_path = os.path.join(convert_folder, f"{file_prefix}_converted.mp4")
 
@@ -412,3 +412,104 @@ if __name__ == "__main__":
         inspect_converted_files()
 
     logging.info("Execution complete.\n")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#                -------------
+#                | So long.  |
+#                -------------
+#                         \
+#                          \
+#                           \
+#                       _\`.___              ___,"/_
+#                    ,'`,-__.-.``=._    _.=``,-.__-.`'.
+#                   /,--'-..,7-)/-`"    "'-\(-7,..-'--.\
+#                 ,"`.         '            `         ,'".
+#                                          /
+#                                         /
+#                                        /
+#                            -----------------------------
+#                            | Thanks for all the fish.  |
+#                            -----------------------------
