@@ -235,9 +235,14 @@ def inspect_files(valid_video_files):
                 if stream["codec_type"] == "video":
                     if "codec_name" in stream:
                         logging.info(f'Video Codec: {stream["codec_name"]}')
-                    logging.info(
-                        f'Resolution: {stream["width"]}x{stream["height"]} [{stream["display_aspect_ratio"]}]'
-                    )
+                    
+                    logging.info(f'Resolution: {stream["width"]}x{stream["height"]}')
+                    
+                    if "display_aspect_ratio" in stream:
+                        logging.info(f'Display Aspect Ratio: {stream["display_aspect_ratio"]}')
+                    else:
+                        logging.info('Display Aspect Ratio: Not available')
+
                 elif stream["codec_type"] == "audio":
                     logging.info("Audio: Present")
 
@@ -377,9 +382,14 @@ def inspect_converted_files():
                 if stream["codec_type"] == "video":
                     if "codec_name" in stream:
                         logging.info(f'Video Codec: {stream["codec_name"]}')
-                    logging.info(
-                        f'Resolution: {stream["width"]}x{stream["height"]} [{stream["display_aspect_ratio"]}]'
-                    )
+                    
+                    logging.info(f'Resolution: {stream["width"]}x{stream["height"]}')
+                    
+                    if "display_aspect_ratio" in stream:
+                        logging.info(f'Display Aspect Ratio: {stream["display_aspect_ratio"]}')
+                    else:
+                        logging.info('Display Aspect Ratio: Not available')
+
                 elif stream["codec_type"] == "audio":
                     logging.info("Audio: Present")
 
