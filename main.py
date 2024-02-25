@@ -441,7 +441,7 @@ if __name__ == "__main__":
 
         inspect_converted_files()
 
-    logging.info(f"Processing complete for batch {batch_id}.\n")
+    logging.info(f"Processing complete for batch ID {batch_id}.\n")
 
 
 
