@@ -6,6 +6,8 @@ from logging.handlers import RotatingFileHandler
 import subprocess
 import json
 import platform
+from datetime import datetime
+import uuid
 
 """
 
@@ -85,8 +87,19 @@ def setup_logging(log_directory="logging"):
     # Set the global logging level
     root_logger.setLevel(logging.INFO)
 
-    root_logger.info("Execution start")
+    root_logger.info("Processing start")
     return log_file_path
+
+
+def generate_batch_id():
+    """Generate a unique ID for the conversion batch"""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    unique_id = str(uuid.uuid4())[
+        :8
+    ]  # Use the first 8 characters of a UUID for uniqueness
+    batch_id = f"{timestamp}_{unique_id}"
+    logging.info(f"Conversion Batch ID: {batch_id}")
+    return batch_id
 
 
 def prepare_files():
@@ -110,7 +123,7 @@ def prepare_files():
             char in r'~\/*?<>|:" ' for char in file
         ):  # Include space character in the condition
             # Remove non-alphanumeric characters
-            new_file_name = re.sub(r"[^a-zA-Z0-9_. ]", "", file)
+            new_file_name = re.sub(r"[^a-zA-Z0-9_. \{\}\[\]]", "", file)
 
             # Replace spaces with underscores in the file name
             new_file_name = new_file_name.replace(" ", "_")
@@ -416,6 +429,8 @@ if __name__ == "__main__":
 
     log_file_path = setup_logging(log_directory=LOGGING_FOLDER)
 
+    batch_id = generate_batch_id()
+
     prepare_files()
 
     valid_video_files = validate_files()
@@ -428,74 +443,7 @@ if __name__ == "__main__":
 
         inspect_converted_files()
 
-    logging.info("Execution complete.\n")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    logging.info(f"Processing complete for {batch_id}.\n")
 
 
 #                -------------
