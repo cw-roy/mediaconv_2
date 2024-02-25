@@ -87,7 +87,7 @@ def setup_logging(log_directory="logging"):
     # Set the global logging level
     root_logger.setLevel(logging.INFO)
 
-    root_logger.info("Processing start")
+    root_logger.info("Logging initiated.")
     return log_file_path
 
 
@@ -98,14 +98,13 @@ def generate_batch_id():
         :8
     ]  # Use the first 8 characters of a UUID for uniqueness
     batch_id = f"{timestamp}_{unique_id}"
-    logging.info(f"Conversion Batch ID: {batch_id}")
+    logging.info(f"Begin processing conversion batch ID: {batch_id}")
     return batch_id
-
 
 def prepare_files():
     """
     Check and rename files in the 'convert_media' folder, replacing spaces
-    with underscores and handling other non-alphanumeric characters.
+    with underscores and removing other non-alphanumeric characters.
     """
     logging.info("Checking filenames for non-standard characters:")
 
@@ -122,29 +121,28 @@ def prepare_files():
         if any(
             char in r'~\/*?<>|:" ' for char in file
         ):  # Include space character in the condition
-            # Remove non-alphanumeric characters
-            new_file_name = re.sub(r"[^a-zA-Z0-9_. \{\}\[\]]", "", file)
+            # Remove non-alphanumeric characters (excluding spaces)
+            new_file_name = re.sub(r"[^a-zA-Z0-9_ .]", "", file)
 
-            # Replace spaces with underscores in the file name
+            # Replace spaces with underscores
             new_file_name = new_file_name.replace(" ", "_")
 
-            file_path = os.path.join(convert_folder, file)
-            new_file_path = os.path.join(convert_folder, new_file_name)
+            # Extract file prefix and extension
+            file_prefix, file_extension = os.path.splitext(new_file_name)
 
             # If the new file name already exists, add a counter to the filename
             counter = 1
-            while os.path.exists(new_file_path):
-                file_prefix, file_extension = os.path.splitext(new_file_name)
+            while os.path.exists(os.path.join(convert_folder, f"{file_prefix}_{counter}{file_extension}")):
                 new_file_name = f"{file_prefix}_{counter}{file_extension}"
-                new_file_path = os.path.join(convert_folder, new_file_name)
                 counter += 1
 
             # Rename the file if it contains spaces or other non-alphanumeric characters
             if file != new_file_name:
-                os.rename(file_path, new_file_path)
+                os.rename(os.path.join(convert_folder, file), os.path.join(convert_folder, new_file_name))
                 logging.info(f'Renamed file: "{file}" to "{new_file_name}"')
 
-    logging.info("Filenames checked.")
+    logging.info("Filenames prepared for processing.")
+
 
 
 def validate_files():
@@ -443,7 +441,14 @@ if __name__ == "__main__":
 
         inspect_converted_files()
 
-    logging.info(f"Processing complete for {batch_id}.\n")
+    logging.info(f"Processing complete for batch {batch_id}.\n")
+
+
+
+
+
+
+
 
 
 #                -------------
