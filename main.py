@@ -88,6 +88,7 @@ def setup_logging(log_directory="logging"):
     root_logger.info("Execution start")
     return log_file_path
 
+
 def prepare_files():
     """
     Check and rename files in the 'convert_media' folder, replacing spaces
@@ -235,13 +236,15 @@ def inspect_files(valid_video_files):
                 if stream["codec_type"] == "video":
                     if "codec_name" in stream:
                         logging.info(f'Video Codec: {stream["codec_name"]}')
-                    
+
                     logging.info(f'Resolution: {stream["width"]}x{stream["height"]}')
-                    
+
                     if "display_aspect_ratio" in stream:
-                        logging.info(f'Display Aspect Ratio: {stream["display_aspect_ratio"]}')
+                        logging.info(
+                            f'Display Aspect Ratio: {stream["display_aspect_ratio"]}'
+                        )
                     else:
-                        logging.info('Display Aspect Ratio: Not available')
+                        logging.info("Display Aspect Ratio: Not available")
 
                 elif stream["codec_type"] == "audio":
                     logging.info("Audio: Present")
@@ -257,10 +260,10 @@ def inspect_files(valid_video_files):
 
 def convert_video(file):
     """
-    Converts a video file to .mp4 format. Specifies the h264 compression standard,
-    balances conversion speed with compression ratio, scales the converted video
-    to 720p while handling non-standard aspect ratios, copies audio using the aac
-    format at full quality, and enables quick video playback by optimizing file
+    Converts a video file to .mp4 format, selecting only video and audio streams.
+    Specifies the h264 compression standard, balances conversion speed with compression ratio,
+    scales the converted video to 720p while handling non-standard aspect ratios, copies audio
+    using the aac format at full quality, and enables quick video playback by optimizing file
     for streaming initiation.
     """
     logging.info(f"Start file conversion for file {file}.")
@@ -280,6 +283,8 @@ def convert_video(file):
             "medium",
             "-crf",
             "23",
+            "-vf",
+            "format=yuv420p",
             "-vf",
             "scale=-2:720",
             "-c:a",
@@ -382,13 +387,15 @@ def inspect_converted_files():
                 if stream["codec_type"] == "video":
                     if "codec_name" in stream:
                         logging.info(f'Video Codec: {stream["codec_name"]}')
-                    
+
                     logging.info(f'Resolution: {stream["width"]}x{stream["height"]}')
-                    
+
                     if "display_aspect_ratio" in stream:
-                        logging.info(f'Display Aspect Ratio: {stream["display_aspect_ratio"]}')
+                        logging.info(
+                            f'Display Aspect Ratio: {stream["display_aspect_ratio"]}'
+                        )
                     else:
-                        logging.info('Display Aspect Ratio: Not available')
+                        logging.info("Display Aspect Ratio: Not available")
 
                 elif stream["codec_type"] == "audio":
                     logging.info("Audio: Present")
@@ -422,22 +429,6 @@ if __name__ == "__main__":
         inspect_converted_files()
 
     logging.info("Execution complete.\n")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
