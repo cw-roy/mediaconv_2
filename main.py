@@ -8,6 +8,7 @@ import json
 import platform
 from datetime import datetime
 import uuid
+import imageio
 
 """
 
@@ -147,54 +148,96 @@ def prepare_files():
 
 def validate_files():
     """
-    Check for the presence of video files in the 'convert_media' folder.
-    Log an error if no files are present or if a file does not contain video.
+    Validate video files by checking if they have a valid video stream.
     Return a list of valid video files.
     """
-    logging.info(
-        "Validating video files. Files without video content will not be processed."
-    )
-    convert_folder = CONVERT_MEDIA_FOLDER
     valid_video_files = []
 
-    files_in_convert = [
-        file
-        for file in os.listdir(convert_folder)
-        if os.path.isfile(os.path.join(convert_folder, file))
-    ]
+    for file in files:
+        input_file_path = os.path.join(CONVERT_MEDIA_FOLDER, file)
 
-    if not files_in_convert:
-        error_message = "No files found in the convert_media folder."
-        logging.error(error_message)
-        return valid_video_files
-
-    for file in files_in_convert:
-        file_path = os.path.join(convert_folder, file)
-
-        # Use ffprobe to check if the file contains video
-        ffprobe_command = f'{FFPROBE} -hide_banner -v error -select_streams v:0 -show_entries stream=codec_type -of csv=p=0 "{file_path}"'
         try:
-            result = subprocess.check_output(
-                ffprobe_command, shell=True, text=True, stderr=subprocess.STDOUT
-            )
-            codec_type = result.strip()
-            if codec_type == "video":
+            ffprobe_command = [
+                FFPROBE,
+                "-hide_banner",
+                "-v",
+                "error",
+                "-select_streams",
+                "v:0",
+                "-show_entries",
+                "stream=codec_type",
+                "-of",
+                "csv=p=0",
+                input_file_path,
+            ]
+
+            ffprobe_output = subprocess.check_output(ffprobe_command, stderr=subprocess.STDOUT, text=True)
+
+            # Check if the ffprobe output contains "video"
+            if "video" in ffprobe_output.lower():
                 valid_video_files.append(file)
             else:
-                error_message = f'File "{file}" does not contain video.'
-                logging.error(error_message)
-                logging.error(f"ffprobe output: {result}")
+                logging.error(f'File "{file}" does not contain a valid video stream.')
+                logging.error(f'ffprobe output for {file}: {ffprobe_output.strip()}')
         except subprocess.CalledProcessError as e:
             # ffprobe command failed
-            error_message = (
-                f'Error in function `validate_files` running ffprobe for file "{file}".'
-            )
-            logging.error(error_message)
-            logging.info(f"Returned from ffprobe: {e.output.strip()}")
-
-    logging.info("Video files validated.")
+            logging.error(f'Error in function `validate_files` running ffprobe for file "{file}".')
+            logging.error(f"Returned from ffprobe: {e.output.strip()}")
 
     return valid_video_files
+
+
+
+# def validate_files():
+#     """
+#     Check for the presence of video files in the 'convert_media' folder.
+#     Log an error if no files are present or if a file does not contain video.
+#     Return a list of valid video files.
+#     """
+#     logging.info(
+#         "Validating video files. Files without video content will not be processed."
+#     )
+#     convert_folder = CONVERT_MEDIA_FOLDER
+#     valid_video_files = []
+
+#     files_in_convert = [
+#         file
+#         for file in os.listdir(convert_folder)
+#         if os.path.isfile(os.path.join(convert_folder, file))
+#     ]
+
+#     if not files_in_convert:
+#         error_message = "No files found in the convert_media folder."
+#         logging.error(error_message)
+#         return valid_video_files
+
+#     for file in files_in_convert:
+#         file_path = os.path.join(convert_folder, file)
+
+#         # Use ffprobe to check if the file contains video
+#         ffprobe_command = f'{FFPROBE} -hide_banner -v error -select_streams v:0 -show_entries stream=codec_type -of csv=p=0 "{file_path}"'
+#         try:
+#             result = subprocess.check_output(
+#                 ffprobe_command, shell=True, text=True, stderr=subprocess.STDOUT
+#             )
+#             codec_type = result.strip()
+#             if codec_type == "video":
+#                 valid_video_files.append(file)
+#             else:
+#                 error_message = f'File "{file}" does not contain video.'
+#                 logging.error(error_message)
+#                 logging.error(f"ffprobe output: {result}")
+#         except subprocess.CalledProcessError as e:
+#             # ffprobe command failed
+#             error_message = (
+#                 f'Error in function `validate_files` running ffprobe for file "{file}".'
+#             )
+#             logging.error(error_message)
+#             logging.info(f"Returned from ffprobe: {e.output.strip()}")
+
+#     logging.info("Video files validated.")
+
+#     return valid_video_files
 
 
 def inspect_files(valid_video_files):
@@ -431,6 +474,12 @@ if __name__ == "__main__":
 
     prepare_files()
 
+    files = [
+    file
+    for file in os.listdir(CONVERT_MEDIA_FOLDER)
+    if os.path.isfile(os.path.join(CONVERT_MEDIA_FOLDER, file))
+    ]
+
     valid_video_files = validate_files()
 
     if valid_video_files:
@@ -442,6 +491,7 @@ if __name__ == "__main__":
         inspect_converted_files()
 
     logging.info(f"Processing complete for batch ID {batch_id}.\n")
+
 
 
 
